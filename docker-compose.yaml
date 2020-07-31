@@ -1,0 +1,51 @@
+version: '3'
+services:
+  web:
+    build: .
+    #command:  gunicorn -c gunicorn_conf.py --statsd-host statsd-exporter:9125 --statsd-prefix=gunicorntest.app app:app --worker-class=meinheld.gmeinheld.MeinheldWorker #uwsgi --http-socket :80 --wsgi-file app.py --callable app --master --processes 2 --threads 4 #gunicorn -c gunicorn_conf.py app:app #python app.py
+    #command:  gunicorn -c gunicorn_conf.py --statsd-host statsd-exporter:9125 --statsd-prefix=gunicorntest.app app:app --worker-class=gevent --worker-connections 1000 --certfile /app/certs/LIVECAREER.COM.crt --keyfile /app/certs/LIVECAREER.COM.key
+    #command:  gunicorn -c gunicorn_conf.py --statsd-host statsd-exporter:9125 --statsd-prefix=gunicorntest.app app:app --worker-class=gevent --worker-connections 100
+    command:  gunicorn -c gunicorn_conf.py --statsd-host statsd-exporter:9125 --statsd-prefix=gunicorntest.app app:app --worker-class=gthread
+    env_file:
+      - web-variables.env
+    ports:
+      - 5000:5000
+      - 5001:80
+    depends_on:
+      #- statsd
+      - statsd-exporter
+
+  # statsd:
+  #   image: graphiteapp/graphite-statsd:latest #statsd/statsd
+  #   ports:
+  #     - 8125:8125/udp
+  #     - 8126:8126
+  #     - 5002:80
+  #     - 2003-2004:2003-2004
+  
+  statsd-exporter:
+    image: prom/statsd-exporter
+    ports:
+      - 9102:9102
+      - 9125:9125/udp
+      - 9125:9125/tcp
+    depends_on:
+      - prometheus
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - 9090:9090
+      - 9091:9091
+      - 9093:9093
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - 3000:3000
+    volumes:
+      - C:\temp\grafana\data:/var/lib/grafana
